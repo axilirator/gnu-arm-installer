@@ -5,8 +5,8 @@ SRCDIR=$ROOT/src
 BUILDDIR=$ROOT/build
 PREFIX=$ROOT/install
 
-GCC_SRC=gcc-4.5.2.tar.bz2
-GCC_VERSION=4.5.2
+GCC_SRC=gcc-4.8.2.tar.bz2
+GCC_VERSION=4.8.2
 GCC_DIR=gcc-$GCC_VERSION
 
 BINUTILS_SRC=binutils-2.21.1a.tar.bz2
@@ -17,11 +17,13 @@ NEWLIB_SRC=newlib-1.19.0.tar.gz
 NEWLIB_VERSION=1.19.0
 NEWLIB_DIR=newlib-$NEWLIB_VERSION
 
-TEXINFO_SRC=texinfo-4.13a.tar.gz
-TEXINFO_VERSION=4.13a
-TEXINFO_DIR=texinfo-$TEXINFO_VERSION
+TARGET_TRIPLET=arm-none-eabi
 
-echo "I will build an arm-elf cross-compiler:
+#INSIGHT_SRC=insight-6.8-1.tar.bz2
+#INSIGHT_VERSION=6.8-1
+#INSIGHT_DIR=insight-$INSIGHT_VERSION
+
+echo "I will build an $TARGET_TRIPLET cross-compiler:
 
   Prefix: $PREFIX
   Sources: $SRCDIR
@@ -59,32 +61,12 @@ cd $SRCDIR
 unpack_source $(basename $GCC_SRC)
 unpack_source $(basename $BINUTILS_SRC)
 unpack_source $(basename $NEWLIB_SRC)
-unpack_source $(basename $TEXINFO_SRC)
+#unpack_source $(basename $INSIGHT_SRC)
 )
 
 # Set the PATH to include the binaries we're going to build.
 OLD_PATH=$PATH
 export PATH=$PREFIX/bin:$PATH
-
-#
-# Stage 0: Texinfo downgrade
-#
-(
-  (
-    # Entering the directory...
-    cd $SRCDIR/$BINUTILS_DIR
-  ) || exit 1
-
-  (
-    # Configuring...
-    ./configure
-  ) || exit 1
-
-  (
-    # Building...
-    make all && make install
-  ) || exit 1
-)
 
 #
 # Stage 1: Build binutils
@@ -100,7 +82,7 @@ cd $SRCDIR/$BINUTILS_DIR
 mkdir -p $BUILDDIR/$BINUTILS_DIR
 cd $BUILDDIR/$BINUTILS_DIR
 
-$SRCDIR/$BINUTILS_DIR/configure --target=arm-elf --prefix=$PREFIX \
+$SRCDIR/$BINUTILS_DIR/configure --target=$TARGET_TRIPLET --prefix=$PREFIX \
     --enable-interwork --enable-threads=posix --enable-multilib --with-float=soft --disable-werror \
     && make all install
 
@@ -110,7 +92,7 @@ $SRCDIR/$BINUTILS_DIR/configure --target=arm-elf --prefix=$PREFIX \
 # Stage 2: Patch the GCC multilib rules, then build the gcc compiler only
 #
 (
-MULTILIB_CONFIG=$SRCDIR/$GCC_DIR/gcc/config/arm/t-arm-elf
+MULTILIB_CONFIG=$SRCDIR/$GCC_DIR/gcc/config/arm/t-$TARGET_TRIPLET
 
 echo "
 
@@ -122,7 +104,7 @@ MULTILIB_DIRNAMES += normal interwork
 mkdir -p $BUILDDIR/$GCC_DIR
 cd $BUILDDIR/$GCC_DIR
 
-$SRCDIR/$GCC_DIR/configure --target=arm-elf --prefix=$PREFIX \
+$SRCDIR/$GCC_DIR/configure --target=$TARGET_TRIPLET --prefix=$PREFIX \
     --enable-interwork --enable-multilib --with-float=soft --disable-werror \
     --enable-languages="c,c++" --with-newlib \
     --with-headers=$SRCDIR/$NEWLIB_DIR/newlib/libc/include \
@@ -145,7 +127,7 @@ cd $SRCDIR/$NEWLIB_DIR
 mkdir -p $BUILDDIR/$NEWLIB_DIR
 cd $BUILDDIR/$NEWLIB_DIR
 
-$SRCDIR/$NEWLIB_DIR/configure --target=arm-elf --prefix=$PREFIX \
+$SRCDIR/$NEWLIB_DIR/configure --target=$TARGET_TRIPLET --prefix=$PREFIX \
     --enable-interwork --enable-multilib --with-float=soft --disable-werror \
     && make all install
 
@@ -172,7 +154,7 @@ make all install
 
 #cd $BUILDDIR/$INSIGHT_DIR
 
-#$SRCDIR/$INSIGHT_DIR/configure --target=arm-elf --prefix=$PREFIX \
+#$SRCDIR/$INSIGHT_DIR/configure --target=$TARGET_TRIPLET --prefix=$PREFIX \
 #    --enable-interwork --enable-multilib --with-float=soft --disable-werror \
 #    && make all install
 
@@ -182,6 +164,6 @@ make all install
 export PATH=$OLD_PATH
 
 echo "
-Build complete! Add $PREFIX/bin to your PATH to make arm-elf-gcc and friends
+Build complete! Add $PREFIX/bin to your PATH to make $TARGET_TRIPLET-gcc and friends
 accessible directly.
 "
