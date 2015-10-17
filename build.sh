@@ -62,6 +62,7 @@ unpack_source $(basename $NEWLIB_SRC)
 #unpack_source $(basename $INSIGHT_SRC)
 # Patch for texinfo5. Adapted from Marcello Pogliani
 patch -p1 < ../gcc-texinfo5.patch
+patch -p1 < ../fix-gcc5-build.patch
 )
 
 # Set the PATH to include the binaries we're going to build.
